@@ -63,7 +63,7 @@ public class TransactionService {
         System.out.print("Enter vendor: ");
         String vendor = scanner.nextLine();
         System.out.print("Enter amount: ");
-        double amount = -Math.abs(Double.parseDouble(scanner.nextLine())); // negatif
+        double amount = -Math.abs(Double.parseDouble(scanner.nextLine()));
 
         String date = LocalDate.now().toString();
         String time = LocalTime.now().withNano(0).toString();
@@ -96,7 +96,7 @@ public class TransactionService {
         } catch (IOException e) {
             System.out.println("Error reading transactions: " + e.getMessage());
         }
-        Collections.reverse(list); // en yeni en üstte
+        Collections.reverse(list);
         return list;
     }
 
@@ -168,31 +168,36 @@ public class TransactionService {
             System.out.println("3) Year To Date");
             System.out.println("4) Previous Year");
             System.out.println("5) Search by Vendor");
+            System.out.println("6) Custom Search");
             System.out.println("0) Back");
             System.out.print("Select an option: ");
-            String input = scanner.nextLine();
+            int input = scanner.nextInt();
+            scanner.nextLine(); // clean up newline
 
             switch (input) {
-                case "1":
+                case 1:
                     printTransactions(filterByDate(all, "monthToDate"));
                     break;
-                case "2":
+                case 2:
                     printTransactions(filterByDate(all, "previousMonth"));
                     break;
-                case "3":
+                case 3:
                     printTransactions(filterByDate(all, "yearToDate"));
                     break;
-                case "4":
+                case 4:
                     printTransactions(filterByDate(all, "previousYear"));
                     break;
-                case "5":
+                case 5:
                     System.out.print("Enter vendor name: ");
                     String vendor = scanner.nextLine().toLowerCase();
                     printTransactions(all.stream()
                             .filter(t -> t.getVendor().toLowerCase().contains(vendor))
                             .toList());
                     break;
-                case "0":
+                case 6:
+                    customSearch(all);
+                    break;
+                case 0:
                     inReports = false;
                     break;
                 default:
@@ -228,5 +233,54 @@ public class TransactionService {
             }
         }
         return result;
+    }
+
+    private static void customSearch(List<Transaction> transactions) {
+        System.out.print("Start Date (YYYY-MM-DD) or leave blank: ");
+        String startDateStr = scanner.nextLine();
+        System.out.print("End Date (YYYY-MM-DD) or leave blank: ");
+        String endDateStr = scanner.nextLine();
+        System.out.print("Description keyword or leave blank: ");
+        String description = scanner.nextLine().toLowerCase();
+        System.out.print("Vendor keyword or leave blank: ");
+        String vendor = scanner.nextLine().toLowerCase();
+        System.out.print("Amount (exact match) or leave blank: ");
+        String amountStr = scanner.nextLine();
+
+        List<Transaction> filtered = new ArrayList<>();
+        for (Transaction t : transactions) {
+            boolean match = true;
+
+            if (!startDateStr.isEmpty()) {
+                LocalDate startDate = LocalDate.parse(startDateStr);
+                if (LocalDate.parse(t.getDate()).isBefore(startDate)) match = false;
+            }
+
+            if (!endDateStr.isEmpty()) {
+                LocalDate endDate = LocalDate.parse(endDateStr);
+                if (LocalDate.parse(t.getDate()).isAfter(endDate)) match = false;
+            }
+
+            if (!description.isEmpty() && !t.getDescription().toLowerCase().contains(description)) {
+                match = false;
+            }
+
+            if (!vendor.isEmpty() && !t.getVendor().toLowerCase().contains(vendor)) {
+                match = false;
+            }
+
+            if (!amountStr.isEmpty()) {
+                try {
+                    double amount = Double.parseDouble(amountStr);
+                    if (t.getAmount() != amount) match = false;
+                } catch (NumberFormatException e) {
+                    System.out.println("Invalid amount format. Skipping amount filter.");
+                }
+            }
+
+            if (match) filtered.add(t);
+        }
+
+        printTransactions(filtered);
     }
 }
